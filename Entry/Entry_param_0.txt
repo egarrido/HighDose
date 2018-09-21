@@ -1,0 +1,5 @@
+Taille de gap (mm): 0.8
+Nombre de pas: 1000
+Pas temporel (ns): 10.
+Haute tension (V): 1200.
+Dose (Gy/pulse): 5.
