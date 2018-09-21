@@ -14,35 +14,35 @@
 
 using namespace std;
 
-#define nm 1.;
-#define um 1000.*nm;
-#define mm 1000.*um;
-#define cm 10.*mm;
-#define m 1000.*mm;
+#define e_c 1.60217646E-19
 
-#define g 1.;
-#define kg 1000.*g;
+#define nm 1.
+#define um 1000.*nm
+#define mm 1000.*um
+#define cm 10.*mm
+#define m 1000.*mm
 
-#define ns 1.;
-#define us 1000.*ns;
-#define ms 1000.*us;
-#define s 1000.*ms;
+#define g 1.
+#define kg 1000.*g
 
-#define eV 1.;
-#define keV 1000.*eV;
-#define MeV 1000.*keV;
+#define ns 1.
+#define us 1000.*ns
+#define ms 1000.*us
+#define s 1000.*ms
 
-#define V 1.;
+#define eV 1.
+#define keV 1000.*eV
+#define MeV 1000.*keV
 
-#define Gy 1.;
+#define V 1.
+
+#define Gy 1./e_c*eV*1./kg
 
 double gap_size;
 double HV;
 int N_pas;
 double T_pas;
-double energie_primaire;
 double dose_initiale;
-double potentiel_ionisation;
 
 struct bucket 
 {
@@ -81,10 +81,10 @@ void EntryParameters(int config_simu)
 	Value_init.push_back(0.);	//	1
 	Variable_init.push_back("Haute tension (V)"); // 2
 	Value_init.push_back(0.);	//	2
-	Variable_init.push_back("Pas temporel (ns):"); // 3
+	Variable_init.push_back("Pas temporel (ns)"); // 3
 	Value_init.push_back(0.);	//	3
-	Variable_init.push_back("Dose (Gy/pulse):"); // 5
-	Value_init.push_back(0.);	//	5
+	Variable_init.push_back("Dose (Gy/pulse)"); // 4
+	Value_init.push_back(0.);	//	4
 
 	cout<<endl;
 	ifstream datafile_param(filename.c_str());
@@ -150,7 +150,7 @@ void EntryParameters(int config_simu)
 						T_pas=(double)atof(buffer.c_str());
 						cout<<Variable_init[ind_value]<<" valeur par défaut: "<<Value_init[ind_value]<<" ns; nouvelle valeur: "<<T_pas<<" ns"<<endl;
 					}
-					if(ind_value==5)
+					if(ind_value==4)
 					{
 						dose_initiale=(double)atof(buffer.c_str());
 						cout<<Variable_init[ind_value]<<" valeur par défaut: "<<Value_init[ind_value]<<" Gy/pulse; nouvelle valeur: "<<dose_initiale<<" Gy/pulse"<<endl;
@@ -198,30 +198,39 @@ double Gaussian(double mean,double rms)
 
 int Ionisation()
 {
+	double potentiel_ionisation=33.97*eV;
 	//valeurs pour électrons de 4.5 MeV
 	double stopping_power_air=1.812*MeV*cm*cm/g; //MeV.cm2.g-1
 	double stopping_power_water=1.882*MeV*cm*cm/g; //MeV.cm2.g-1
-	double densite_air=1.225*kg/(m*m*m); //
+	double densite_eau=1000.*kg/(m*m*m); 
+	double densite_air=1.225*kg/(m*m*m); 
+	double surface_electrode=1.*cm*cm;
+	double volume_electrode=surface_electrode*gap_size;
+	double nbr_ionisation=dose_initiale*stopping_power_air/stopping_power_water*densite_air/densite_eau*1./volume_electrode*1./potentiel_ionisation;
+	cout<<"Ionisation : "<<nbr_ionisation<<endl;
+	return 0;
 }
 
 int main()
 {
-	double determinant=0.;
-	double **Matrice=(double**)malloc(N_pas*sizeof(double*));
-	double **MatriceInv=(double**)malloc(N_pas*sizeof(double*));
-	for(int i=0;i<N_pas;i++)
-	{
-		Matrice[i]=(double*)malloc(N_pas*sizeof(double));
-		MatriceInv[i]=(double*)malloc(N_pas*sizeof(double));
-	}
-
 	std::vector<bucket> buck;
 
-	for(int i=0;i<N_pas;i++)
-	{
-		free(Matrice[i]);  
-		free(MatriceInv[i]);  
-	}
-	free(Matrice);
-	free(MatriceInv);
+	// double determinant=0.;
+	// double **Matrice=(double**)malloc(N_pas*sizeof(double*));
+	// double **MatriceInv=(double**)malloc(N_pas*sizeof(double*));
+	// for(int i=0;i<N_pas;i++)
+	// {
+	// 	Matrice[i]=(double*)malloc(N_pas*sizeof(double));
+	// 	MatriceInv[i]=(double*)malloc(N_pas*sizeof(double));
+	// }
+
+	// for(int i=0;i<N_pas;i++)
+	// {
+	// 	free(Matrice[i]);  
+	// 	free(MatriceInv[i]);  
+	// }
+	// free(Matrice);
+	// free(MatriceInv);
+	EntryParameters(0);
+	Ionisation();
 }
