@@ -11,8 +11,8 @@ set boxwidth width*0.9
 set style fill solid 0.5 # fill style
 
 set multiplot
-set size 1,0.5
-set origin 0,0.5
+set size 1,0.33
+set origin 0,0.66
 set grid
 set xlabel "Position"
 set ylabel "Amplitude"
@@ -21,6 +21,10 @@ set xrange[min:max]
 #count and plot
 plot "Output_e.txt" u (hist($1,width)):(1.0) smooth freq w boxes lc rgb"red" notitle
 
-set origin 0,0
+set origin 0,0.33
 set title "Cations"
 plot "Output_c.txt" u (hist($1,width)):(1.0) smooth freq w boxes lc rgb"blue" notitle
+
+set origin 0,0
+set title "Anions"
+plot "Output_a.txt" u (hist($1,width)):(1.0) smooth freq w boxes lc rgb"green" notitle

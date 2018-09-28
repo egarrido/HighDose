@@ -318,7 +318,7 @@ double AttachementTime(double E)
 			return 0.;
 		break;	
 		case(air):
-			return Ta0*(1.-exp(-E/E0));
+			// return 1./(Ta0*(1.-exp(-E/E0)));
 		break;	
 	}
 	return 0.;
@@ -400,28 +400,32 @@ void Python(std::vector<bucket>& seaux)
 	int tot_anio=0;
 	ofstream output_file_e("./Output_e.txt");
 	ofstream output_file_c("./Output_c.txt");
+	ofstream output_file_a("./Output_a.txt");
 	for(int i=0;i<sizeofbucket;i++)
 	{
-		// output_file<<seaux[i].quanta<<endl;
-		if(seaux[i].nature==electron)
+		if(seaux[i].condition!=mort)
 		{
-			output_file_e<<seaux[i].position<<endl;
-			tot_elec++;
-		}
-		if(seaux[i].nature==cation)
-		{
-			output_file_c<<seaux[i].position<<endl;
-			tot_cati++;
-		}
-		if(seaux[i].nature==anion)
-		{
-			// output_file_c<<seaux[i].position<<endl;
-			tot_anio++;
+			if(seaux[i].nature==electron)
+			{
+				output_file_e<<seaux[i].position<<endl;
+				tot_elec++;
+			}
+			if(seaux[i].nature==cation)
+			{
+				output_file_c<<seaux[i].position<<endl;
+				tot_cati++;
+			}
+			if(seaux[i].nature==anion)
+			{
+				output_file_a<<seaux[i].position<<endl;
+				tot_anio++;
+			}
 		}
 	}
 	cout<<"Total seaux : "<<sizeofbucket<<"; electrons : "<<tot_elec<<"; cations : "<<tot_cati<<"; anions : "<<tot_anio<<endl;
 	output_file_e.close();
 	output_file_c.close();
+	output_file_a.close();
 }
 
 int main()
@@ -534,6 +538,14 @@ int main()
 					seau_ini.nature=cation;
 					seau_ini.charge=1.;
 					buck.push_back(seau_ini);	//ion+
+
+					if(nature_gaz==air)
+					{
+						seau_ini.quanta=1.;
+						seau_ini.nature=anion;
+						seau_ini.charge=-1.;
+						buck.push_back(seau_ini);	//ion-
+					}
 				}
 			}
 			else
@@ -544,27 +556,14 @@ int main()
 			
 			temps_attachement=AttachementTime(champ_electrique);
 
+			Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_elec_avant->coef[inter_indice]*
+																				(T_pas*temps_attachement+Nbr_cati_avant->coef[inter_indice]*recombinaison_electron_ion);
 			Nbr_cati_apres->coef[inter_indice]=Nbr_cati_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_cati_avant->coef[inter_indice]*
 																				(Nbr_elec_avant->coef[inter_indice]*recombinaison_ion_ion+Nbr_anio_avant->coef[inter_indice]*recombinaison_ion_ion);
-			if(temps_attachement==0.)																	
-			{
-				Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_elec_avant->coef[inter_indice]*
-																					 Nbr_cati_avant->coef[inter_indice]*recombinaison_electron_ion;
-				Nbr_anio_apres->coef[inter_indice]=0.;
-			}
-			else
-			{
-				Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_elec_avant->coef[inter_indice]*
-																					(T_pas/temps_attachement+Nbr_cati_avant->coef[inter_indice]*recombinaison_electron_ion);
-				Nbr_anio_apres->coef[inter_indice]=Nbr_anio_avant->coef[inter_indice]+Nbr_elec_avant->coef[inter_indice]*
-																					(T_pas/temps_attachement-Nbr_cati_avant->coef[inter_indice]*recombinaison_ion_ion);
-			}
+			Nbr_anio_apres->coef[inter_indice]=Nbr_anio_avant->coef[inter_indice]+Nbr_elec_avant->coef[inter_indice]*T_pas*temps_attachement
+																				-Nbr_cati_avant->coef[inter_indice]*Nbr_anio_avant->coef[inter_indice]*recombinaison_ion_ion;
 
-			// cout<<Nbr_elec_avant->coef[inter_indice]<<" "<<Nbr_elec_apres->coef[inter_indice]<<endl;
-			// Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice];
-			// Nbr_cati_apres->coef[inter_indice]=Nbr_cati_avant->coef[inter_indice];
-			// Nbr_anio_apres->coef[inter_indice]=Nbr_anio_avant->coef[inter_indice];
-			
+			cout<<Nbr_anio_apres->coef[inter_indice]<<endl;
 			mobilite_electron=ElectronSpeed(champ_electrique);
 			mobilite_cation=IonSpeed(cation);
 			mobilite_anion=IonSpeed(anion);

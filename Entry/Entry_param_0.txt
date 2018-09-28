@@ -1,4 +1,4 @@
-Gaz: N2
+Gaz: Air
 Taille de gap (mm): 0.8
 Nombre de pas: 100
 Nombre de seaux par intervalle: 4
