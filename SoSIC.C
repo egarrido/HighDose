@@ -68,11 +68,13 @@ double duree_pulse;
 double duree_acqui;
 
 bool faisceau;
+int k0;
 double mobilite_electron;
 double mobilite_cation;
 double mobilite_anion;
 double temps_attachement;
-double recombinaison;
+double recombinaison_electron_ion;
+double recombinaison_ion_ion;
 
 struct bucket 
 {
@@ -442,16 +444,22 @@ int main()
 	mobilite_electron=1E5*mm*mm/(V*s);
 	mobilite_cation=200*mm*mm/(V*s);
 	mobilite_anion=200*mm*mm/(V*s);
-	recombinaison=1.98E-3*mm*mm*mm/s;
+	recombinaison_electron_ion=1.98E-3*mm*mm*mm/s;
+	recombinaison_ion_ion=1.98E-3*mm*mm*mm/s;
+	recombinaison_electron_ion=0.;
+	recombinaison_ion_ion=0.;
 	champ_electrique=HV/gap_size;
 
 	nb_ionisation=Ionisation();
 
 	vvector Nbr_elec_avant=vector_null(N_pas);
+	vvector Nbr_elec_pendant=vector_null(N_pas);
 	vvector Nbr_elec_apres=vector_null(N_pas);
 	vvector Nbr_cati_avant=vector_null(N_pas);
+	vvector Nbr_cati_pendant=vector_null(N_pas);
 	vvector Nbr_cati_apres=vector_null(N_pas);
 	vvector Nbr_anio_avant=vector_null(N_pas);
+	vvector Nbr_anio_pendant=vector_null(N_pas);
 	vvector Nbr_anio_apres=vector_null(N_pas);
 	vvector Rho_charge=vector_null(N_pas);
 	
@@ -477,7 +485,12 @@ int main()
 	faisceau=true;
 
 	for(int rho_ind=0;rho_ind<N_pas;rho_ind++)	// Pour le premier pas, les nombres de charges - et + s'équilibrent
+	{
 		Rho_charge->coef[rho_ind]=0.;
+		Nbr_elec_avant->coef[rho_ind]=0.;
+		Nbr_cati_avant->coef[rho_ind]=0.;
+		Nbr_anio_avant->coef[rho_ind]=0.;
+	}
 
 	// for(int i=0;i<i_temps;i++)
 	for(int i=0;i<11;i++)
@@ -492,10 +505,19 @@ int main()
 
 		Rho_charge=ElectricField(Rho_charge);	// Calcul du champ
 
+		// cout<<"Buck ini "<<buck_tot.size()<<endl;
+		for(int inter_indice=0;inter_indice<N_pas;inter_indice++)
+		{
+			Nbr_elec_avant->coef[inter_indice]=Nbr_elec_pendant->coef[inter_indice];
+			Nbr_cati_avant->coef[inter_indice]=Nbr_cati_pendant->coef[inter_indice];
+			Nbr_anio_avant->coef[inter_indice]=Nbr_anio_pendant->coef[inter_indice];
+		}
+
 		for(int inter_indice=0;inter_indice<N_pas;inter_indice++)
 		{
 			if(faisceau==true)	// initialisation en début de pas de temps
 			{
+				k0=1;
 				for(int k=0;k<B_pas;k++)
 				{
 					int indice=inter_indice*B_pas+k;
@@ -514,20 +536,38 @@ int main()
 					buck.push_back(seau_ini);	//ion+
 				}
 			}
+			else
+				k0=0;
 
+			// Chimie
 			champ_electrique=Rho_charge->coef[inter_indice];
+			
+			temps_attachement=AttachementTime(champ_electrique);
+
+			Nbr_cati_apres->coef[inter_indice]=Nbr_cati_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_cati_avant->coef[inter_indice]*
+																				(Nbr_elec_avant->coef[inter_indice]*recombinaison_ion_ion+Nbr_anio_avant->coef[inter_indice]*recombinaison_ion_ion);
+			if(temps_attachement==0.)																	
+			{
+				Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_elec_avant->coef[inter_indice]*
+																					 Nbr_cati_avant->coef[inter_indice]*recombinaison_electron_ion;
+				Nbr_anio_apres->coef[inter_indice]=0.;
+			}
+			else
+			{
+				Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_elec_avant->coef[inter_indice]*
+																					(T_pas/temps_attachement+Nbr_cati_avant->coef[inter_indice]*recombinaison_electron_ion);
+				Nbr_anio_apres->coef[inter_indice]=Nbr_anio_avant->coef[inter_indice]+Nbr_elec_avant->coef[inter_indice]*
+																					(T_pas/temps_attachement-Nbr_cati_avant->coef[inter_indice]*recombinaison_ion_ion);
+			}
+
+			// cout<<Nbr_elec_avant->coef[inter_indice]<<" "<<Nbr_elec_apres->coef[inter_indice]<<endl;
+			// Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice];
+			// Nbr_cati_apres->coef[inter_indice]=Nbr_cati_avant->coef[inter_indice];
+			// Nbr_anio_apres->coef[inter_indice]=Nbr_anio_avant->coef[inter_indice];
 			
 			mobilite_electron=ElectronSpeed(champ_electrique);
 			mobilite_cation=IonSpeed(cation);
 			mobilite_anion=IonSpeed(anion);
-			temps_attachement=AttachementTime(champ_electrique);
-
-
-
-			// if(buck[buck_indice].quanta<=0.)
-			// 	buck[buck_indice].condition=mort;
-
-			
 
 			for(int buck_indice=0;buck_indice<buck.size();buck_indice++)
 			{
@@ -538,17 +578,23 @@ int main()
 					switch(buck[buck_indice].nature)
 					{
 						case electron:
-							Nbr_elec_avant->coef[inter_indice]+=buck[buck_indice].quanta;
+							if(Nbr_elec_avant->coef[inter_indice]>0.)
+								buck[buck_indice].quanta*=Nbr_elec_apres->coef[inter_indice]/Nbr_elec_avant->coef[inter_indice];
+							Nbr_elec_pendant->coef[inter_indice]+=buck[buck_indice].quanta;
 							mean=T_pas*mobilite_electron*champ_electrique;
 							rms=Dispersion(mobilite_electron);
 						break;
 						case cation:
-							Nbr_cati_avant->coef[inter_indice]+=buck[buck_indice].quanta;
+							if(Nbr_cati_avant->coef[inter_indice]>0.)
+								buck[buck_indice].quanta*=Nbr_cati_apres->coef[inter_indice]/Nbr_cati_avant->coef[inter_indice];
+							Nbr_cati_pendant->coef[inter_indice]+=buck[buck_indice].quanta;
 							mean=T_pas*mobilite_cation*champ_electrique;
 							rms=Dispersion(mobilite_cation);
 						break;
 						case anion:
-							Nbr_anio_avant->coef[inter_indice]+=buck[buck_indice].quanta;
+							if(Nbr_anio_avant->coef[inter_indice]>0.)
+								buck[buck_indice].quanta*=Nbr_anio_apres->coef[inter_indice]/Nbr_anio_avant->coef[inter_indice];
+							Nbr_anio_pendant->coef[inter_indice]+=buck[buck_indice].quanta;
 							mean=T_pas*mobilite_anion*champ_electrique;
 							rms=Dispersion(mobilite_anion);
 						break;
@@ -568,19 +614,28 @@ int main()
 
 					int inter_tmp=IntervalLocation(buck[buck_indice].position);
 					buck[buck_indice].intervalle=IntervalLocation(buck[buck_indice].position);
-					Rho_charge->coef[inter_tmp]+=buck[buck_indice].charge*buck[buck_indice].quanta;
+
+
+					if(buck[buck_indice].quanta<=0.)
+					{
+						cout<<"Mort"<<endl;
+						buck[buck_indice].condition=mort;
+					}
 
 					if(buck[buck_indice].condition==pending)				//Purge des seaux obsoletes
 					{
-						buck_tmp.push_back(buck[buck_indice]);
+						Rho_charge->coef[inter_tmp]+=buck[buck_indice].charge*buck[buck_indice].quanta;
 						buck[buck_indice].condition=traite;
+						buck_tmp.push_back(buck[buck_indice]);
 					}
 					else
 						buck_tot.push_back(buck[buck_indice]);
 				}
 			}
 		}
-		// cout<<buck.size()<<" "<<buck_tmp.size()<<" "<<buck_tot.size()<<endl;
+		cout<<buck.size()<<" "<<buck_tmp.size()<<" "<<buck_tot.size()<<endl;
+		// for(int buck_indice=0;buck_indice<buck.size();buck_indice++)
+		// 	buck[buck_indice].condition=vivant;
 		buck.clear();
 		for(int buck_tmp_indice=0;buck_tmp_indice<buck_tmp.size();buck_tmp_indice++)
 		{
@@ -617,10 +672,13 @@ int main()
 	Python(buck_tot);
 
 	vector_free(Nbr_elec_avant);
+	vector_free(Nbr_elec_pendant);
 	vector_free(Nbr_elec_apres);
 	vector_free(Nbr_cati_avant);
+	vector_free(Nbr_cati_pendant);
 	vector_free(Nbr_cati_apres);
 	vector_free(Nbr_anio_avant);
+	vector_free(Nbr_anio_pendant);
 	vector_free(Nbr_anio_apres);
 	vector_free(Rho_charge);
 }

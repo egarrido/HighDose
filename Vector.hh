@@ -52,11 +52,3 @@ double vector_norm(vvector v)
 	}
 	return sqrt(x);
 }
-
-// void main() 
-// {
-// 	vvector v=vector_null(3);
-// 	vector_print(v);
-// 	printf(" %f\n",vector_norm(v));
-// 	vector_free(v);
-// }
