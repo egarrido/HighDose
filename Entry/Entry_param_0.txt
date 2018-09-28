@@ -1,5 +1,9 @@
+Gaz: N2
 Taille de gap (mm): 0.8
-Nombre de pas: 1000
+Nombre de pas: 100
+Nombre de seaux par intervalle: 4
 Pas temporel (ns): 10.
+Durée du pulse (us): 2.2
+Durée acquisition (us): 10.
 Haute tension (V): 1200.
-Dose (Gy/pulse): 5.
+Dose (Gy/pulse): .005
