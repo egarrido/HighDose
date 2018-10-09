@@ -450,8 +450,8 @@ int main()
 	mobilite_anion=200*mm*mm/(V*s);
 	recombinaison_electron_ion=1.98E-3*mm*mm*mm/s;
 	recombinaison_ion_ion=1.98E-3*mm*mm*mm/s;
-	recombinaison_electron_ion=0.;
-	recombinaison_ion_ion=0.;
+	// recombinaison_electron_ion=0.;
+	// recombinaison_ion_ion=0.;
 	champ_electrique=HV/gap_size;
 
 	nb_ionisation=Ionisation();
@@ -555,6 +555,7 @@ int main()
 			champ_electrique=Rho_charge->coef[inter_indice];
 			
 			temps_attachement=AttachementTime(champ_electrique);
+			temps_attachement=0.;
 
 			Nbr_elec_apres->coef[inter_indice]=Nbr_elec_avant->coef[inter_indice]+k0*nb_ionisation-Nbr_elec_avant->coef[inter_indice]*
 																				(T_pas*temps_attachement+Nbr_cati_avant->coef[inter_indice]*recombinaison_electron_ion);
@@ -563,7 +564,7 @@ int main()
 			Nbr_anio_apres->coef[inter_indice]=Nbr_anio_avant->coef[inter_indice]+Nbr_elec_avant->coef[inter_indice]*T_pas*temps_attachement
 																				-Nbr_cati_avant->coef[inter_indice]*Nbr_anio_avant->coef[inter_indice]*recombinaison_ion_ion;
 
-			cout<<Nbr_anio_apres->coef[inter_indice]<<endl;
+			// cout<<Nbr_anio_apres->coef[inter_indice]<<endl;
 			mobilite_electron=ElectronSpeed(champ_electrique);
 			mobilite_cation=IonSpeed(cation);
 			mobilite_anion=IonSpeed(anion);
@@ -617,7 +618,7 @@ int main()
 
 					if(buck[buck_indice].quanta<=0.)
 					{
-						cout<<"Mort"<<endl;
+						// cout<<"Mort"<<endl;
 						buck[buck_indice].condition=mort;
 					}
 
@@ -632,7 +633,7 @@ int main()
 				}
 			}
 		}
-		cout<<buck.size()<<" "<<buck_tmp.size()<<" "<<buck_tot.size()<<endl;
+		// cout<<buck.size()<<" "<<buck_tmp.size()<<" "<<buck_tot.size()<<endl;
 		// for(int buck_indice=0;buck_indice<buck.size();buck_indice++)
 		// 	buck[buck_indice].condition=vivant;
 		buck.clear();
